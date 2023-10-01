@@ -1,8 +1,10 @@
 package txbuilder
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
+	mathRand "math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,27 +13,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
-	"github.com/holiman/uint256"
+	"github.com/ethereum/go-ethereum/params"
 )
 
-type TxMetadata struct {
-	GasTipCap  *uint256.Int // a.k.a. maxPriorityFeePerGas
-	GasFeeCap  *uint256.Int // a.k.a. maxFeePerGas
-	BlobFeeCap *uint256.Int // a.k.a. maxFeePerBlobGas
-	Gas        uint64
-	To         common.Address
-	Value      *uint256.Int
-	Data       []byte
-	AccessList types.AccessList
-}
-
-func BuildBlobTx(txData *TxMetadata, blobRefs []string) (*types.BlobTx, error) {
+func BuildBlobTx(txData *TxMetadata, blobRefs [][]string) (*types.BlobTx, error) {
+	if txData.To == nil {
+		return nil, fmt.Errorf("to cannot be nil for blob transaction")
+	}
 	tx := types.BlobTx{
 		GasTipCap:  txData.GasTipCap,
 		GasFeeCap:  txData.GasFeeCap,
 		BlobFeeCap: txData.BlobFeeCap,
 		Gas:        txData.Gas,
-		To:         txData.To,
+		To:         *txData.To,
 		Value:      txData.Value,
 		Data:       txData.Data,
 		AccessList: txData.AccessList,
@@ -44,7 +38,7 @@ func BuildBlobTx(txData *TxMetadata, blobRefs []string) (*types.BlobTx, error) {
 	}
 
 	for _, blobRef := range blobRefs {
-		err := parseBlobRef(&tx, blobRef)
+		err := parseBlobRefs(&tx, blobRef)
 		if err != nil {
 			return nil, err
 		}
@@ -53,43 +47,75 @@ func BuildBlobTx(txData *TxMetadata, blobRefs []string) (*types.BlobTx, error) {
 	return &tx, nil
 }
 
-func parseBlobRef(tx *types.BlobTx, blobRef string) error {
+func parseBlobRefs(tx *types.BlobTx, blobRefs []string) error {
 	var err error
 	var blobBytes []byte
 
-	if strings.HasPrefix(blobRef, "0x") {
-		blobBytes = common.FromHex(blobRef)
-	} else if refParts := strings.Split(blobRef, ":"); len(refParts) >= 2 {
-		switch refParts[0] {
-		case "file":
-			blobBytes, err = os.ReadFile(strings.Join(refParts[1:], ":"))
-			if err != nil {
-				return err
-			}
-		case "url":
-			blobBytes, err = loadUrlRef(strings.Join(refParts[1:], ":"))
-			if err != nil {
-				return err
-			}
-		case "repeat":
-			if len(refParts) != 3 {
-				return fmt.Errorf("invalid repeat ref format: %v", blobRef)
-			}
-			repeatCount, err := strconv.Atoi(refParts[2])
-			if err != nil {
-				return fmt.Errorf("invalid repeat count: %v", refParts[2])
-			}
-			repeatBytes := common.FromHex(refParts[1])
-			repeatBytesLen := len(repeatBytes)
-			blobBytes = make([]byte, repeatCount*repeatBytesLen)
-			for i := 0; i < repeatCount; i++ {
-				copy(blobBytes[(i*repeatBytesLen):], repeatBytes)
+	for _, blobRef := range blobRefs {
+		var blobRefBytes []byte
+		if strings.HasPrefix(blobRef, "0x") {
+			blobRefBytes = common.FromHex(blobRef)
+		} else {
+			refParts := strings.Split(blobRef, ":")
+			switch refParts[0] {
+			case "file":
+				blobRefBytes, err = os.ReadFile(strings.Join(refParts[1:], ":"))
+				if err != nil {
+					return err
+				}
+			case "url":
+				blobRefBytes, err = loadUrlRef(strings.Join(refParts[1:], ":"))
+				if err != nil {
+					return err
+				}
+			case "repeat":
+				if len(refParts) != 3 {
+					return fmt.Errorf("invalid repeat ref format: %v", blobRef)
+				}
+				repeatCount, err := strconv.Atoi(refParts[2])
+				if err != nil {
+					return fmt.Errorf("invalid repeat count: %v", refParts[2])
+				}
+				repeatBytes := common.FromHex(refParts[1])
+				repeatBytesLen := len(repeatBytes)
+				blobRefBytes = make([]byte, repeatCount*repeatBytesLen)
+				for i := 0; i < repeatCount; i++ {
+					copy(blobRefBytes[(i*repeatBytesLen):], repeatBytes)
+				}
+			case "random":
+				blobLen := -1
+				if len(refParts) > 1 {
+					var err error
+					blobLen, err = strconv.Atoi(refParts[2])
+					if err != nil {
+						return fmt.Errorf("invalid repeat count: %v", refParts[2])
+					}
+				} else {
+					blobLen = mathRand.Intn((params.BlobTxFieldElementsPerBlob * (params.BlobTxBytesPerFieldElement - 1)) - len(blobBytes))
+				}
+				blobRefBytes, err = randomBlobData(blobLen)
+				if err != nil {
+					return err
+				}
+			case "copy":
+				if len(refParts) != 2 {
+					return fmt.Errorf("invalid copy ref format: %v", blobRef)
+				}
+				copyIdx, err := strconv.Atoi(refParts[1])
+				if err != nil {
+					return fmt.Errorf("invalid copy index: %v", refParts[1])
+				}
+				if copyIdx >= len(tx.Sidecar.Blobs) {
+					return fmt.Errorf("invalid copy index: %v must be smaller than current blob index", refParts[1])
+				}
+				blobRefBytes = tx.Sidecar.Blobs[copyIdx][:]
 			}
 		}
-	}
 
-	if blobBytes == nil {
-		return fmt.Errorf("unknown blob ref: %v", blobRef)
+		if blobRefBytes == nil {
+			return fmt.Errorf("unknown blob ref: %v", blobRef)
+		}
+		blobBytes = append(blobBytes, blobRefBytes...)
 	}
 
 	blobCommitment, err := EncodeBlob(blobBytes)
@@ -115,4 +141,16 @@ func loadUrlRef(url string) ([]byte, error) {
 		return nil, fmt.Errorf("received http error: %v", response.Status)
 	}
 	return io.ReadAll(response.Body)
+}
+
+func randomBlobData(size int) ([]byte, error) {
+	data := make([]byte, size)
+	n, err := rand.Read(data)
+	if err != nil {
+		return nil, err
+	}
+	if n != size {
+		return nil, fmt.Errorf("could not create random blob data with size %d: %v", size, err)
+	}
+	return data, nil
 }

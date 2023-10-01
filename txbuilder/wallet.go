@@ -13,12 +13,13 @@ import (
 )
 
 type Wallet struct {
-	mutex   sync.Mutex
-	privkey *ecdsa.PrivateKey
-	address common.Address
-	chainid *big.Int
-	nonce   uint64
-	balance *big.Int
+	nonceMutex   sync.Mutex
+	balanceMutex sync.RWMutex
+	privkey      *ecdsa.PrivateKey
+	address      common.Address
+	chainid      *big.Int
+	nonce        uint64
+	balance      *big.Int
 }
 
 func NewWallet(privkey string) (*Wallet, error) {
@@ -70,6 +71,8 @@ func (wallet *Wallet) GetNonce() uint64 {
 }
 
 func (wallet *Wallet) GetBalance() *big.Int {
+	wallet.balanceMutex.RLock()
+	defer wallet.balanceMutex.RUnlock()
 	return wallet.balance
 }
 
@@ -82,28 +85,54 @@ func (wallet *Wallet) SetNonce(nonce uint64) {
 }
 
 func (wallet *Wallet) SetBalance(balance *big.Int) {
+	wallet.balanceMutex.Lock()
+	defer wallet.balanceMutex.Unlock()
 	wallet.balance = balance
 }
 
+func (wallet *Wallet) SubBalance(amount *big.Int) {
+	wallet.balanceMutex.Lock()
+	defer wallet.balanceMutex.Unlock()
+	wallet.balance = wallet.balance.Sub(wallet.balance, amount)
+}
+
+func (wallet *Wallet) AddBalance(amount *big.Int) {
+	wallet.balanceMutex.Lock()
+	defer wallet.balanceMutex.Unlock()
+	wallet.balance = wallet.balance.Add(wallet.balance, amount)
+}
+
 func (wallet *Wallet) BuildDynamicFeeTx(txData *types.DynamicFeeTx) (*types.Transaction, error) {
-	wallet.mutex.Lock()
+	wallet.nonceMutex.Lock()
 	txData.ChainID = wallet.chainid
 	txData.Nonce = wallet.nonce
 	wallet.nonce++
-	wallet.mutex.Unlock()
-	return wallet.SignTx(txData)
+	wallet.nonceMutex.Unlock()
+	return wallet.signTx(txData)
 }
 
 func (wallet *Wallet) BuildBlobTx(txData *types.BlobTx) (*types.Transaction, error) {
-	wallet.mutex.Lock()
+	wallet.nonceMutex.Lock()
 	txData.ChainID = uint256.MustFromBig(wallet.chainid)
 	txData.Nonce = wallet.nonce
 	wallet.nonce++
-	wallet.mutex.Unlock()
-	return wallet.SignTx(txData)
+	wallet.nonceMutex.Unlock()
+	return wallet.signTx(txData)
 }
 
-func (wallet *Wallet) SignTx(txData types.TxData) (*types.Transaction, error) {
+func (wallet *Wallet) ReplaceDynamicFeeTx(txData *types.DynamicFeeTx, nonce uint64) (*types.Transaction, error) {
+	txData.ChainID = wallet.chainid
+	txData.Nonce = nonce
+	return wallet.signTx(txData)
+}
+
+func (wallet *Wallet) ReplaceBlobTx(txData *types.BlobTx, nonce uint64) (*types.Transaction, error) {
+	txData.ChainID = uint256.MustFromBig(wallet.chainid)
+	txData.Nonce = nonce
+	return wallet.signTx(txData)
+}
+
+func (wallet *Wallet) signTx(txData types.TxData) (*types.Transaction, error) {
 	tx := types.NewTx(txData)
 	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(wallet.chainid), wallet.privkey)
 	if err != nil {

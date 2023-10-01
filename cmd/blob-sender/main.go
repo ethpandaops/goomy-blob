@@ -90,26 +90,27 @@ func main() {
 		wallet.SetNonce(uint64(nonce))
 	}
 
+	toAddr := common.HexToAddress(cliArgs.txTo)
 	txMetadata := txbuilder.TxMetadata{
 		GasTipCap:  uint256.NewInt(uint64(cliArgs.maxpriofee * 1000000000)),
 		GasFeeCap:  uint256.NewInt(uint64(cliArgs.maxfeepergas * 1000000000)),
 		BlobFeeCap: uint256.NewInt(uint64(cliArgs.maxblobfee * 1000000000)),
 		Gas:        cliArgs.gaslimit,
-		To:         common.HexToAddress(cliArgs.txTo),
+		To:         &toAddr,
 		Value:      uint256.NewInt(cliArgs.txValue),
 		Data:       common.FromHex(cliArgs.txData),
 	}
+	blobRefs := [][]string{}
+	for _, blobRef := range cliArgs.txBlobs {
+		blobRefs = append(blobRefs, []string{blobRef})
+	}
 
 	for idx := 0; idx < int(cliArgs.txCount); idx++ {
-		txData, err := txbuilder.BuildBlobTx(&txMetadata, cliArgs.txBlobs)
+		txData, err := txbuilder.BuildBlobTx(&txMetadata, blobRefs)
 		if err != nil {
 			panic(err)
 		}
 		tx, err := wallet.BuildBlobTx(txData)
-		if err != nil {
-			panic(err)
-		}
-		tx, err = wallet.SignTx(txData)
 		if err != nil {
 			panic(err)
 		}
