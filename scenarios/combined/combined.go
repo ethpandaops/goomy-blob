@@ -1,4 +1,4 @@
-package blobspam
+package combined
 
 import (
 	"fmt"
@@ -19,15 +19,17 @@ import (
 )
 
 type ScenarioOptions struct {
-	TotalCount  uint64
-	Throughput  uint64
-	Sidecars    uint64
-	MaxPending  uint64
-	MaxWallets  uint64
-	Rebroadcast uint64
-	BaseFee     uint64
-	TipFee      uint64
-	BlobFee     uint64
+	TotalCount      uint64
+	Throughput      uint64
+	Sidecars        uint64
+	MaxPending      uint64
+	MaxWallets      uint64
+	Replace         uint64
+	MaxReplacements uint64
+	Rebroadcast     uint64
+	BaseFee         uint64
+	TipFee          uint64
+	BlobFee         uint64
 }
 
 type Scenario struct {
@@ -42,17 +44,19 @@ type Scenario struct {
 
 func NewScenario() scenariotypes.Scenario {
 	return &Scenario{
-		logger: logrus.WithField("scenario", "spam"),
+		logger: logrus.WithField("scenario", "combined"),
 	}
 }
 
 func (s *Scenario) Flags(flags *pflag.FlagSet) error {
 	flags.Uint64VarP(&s.options.TotalCount, "count", "c", 0, "Total number of blob transactions to send")
 	flags.Uint64VarP(&s.options.Throughput, "throughput", "t", 0, "Number of blob transactions to send per slot")
-	flags.Uint64VarP(&s.options.Sidecars, "sidecars", "b", 0, "Number of blob sidecars per blob transactions (0 = random)")
+	flags.Uint64VarP(&s.options.Sidecars, "sidecars", "b", 3, "Maximum number of blob sidecars per blob transactions")
 	flags.Uint64Var(&s.options.MaxPending, "max-pending", 0, "Maximum number of pending transactions")
 	flags.Uint64Var(&s.options.MaxWallets, "max-wallets", 0, "Maximum number of child wallets to use")
-	flags.Uint64Var(&s.options.Rebroadcast, "rebroadcast", 120, "Number of seconds to wait before re-broadcasting a transaction")
+	flags.Uint64Var(&s.options.Replace, "replace", 30, "Number of seconds to wait before replace a transaction")
+	flags.Uint64Var(&s.options.MaxReplacements, "max-replace", 4, "Maximum number of replacement transactions")
+	flags.Uint64Var(&s.options.Rebroadcast, "rebroadcast", 30, "Number of seconds to wait before re-broadcasting a transaction")
 	flags.Uint64Var(&s.options.BaseFee, "basefee", 20, "Max fee per gas to use in blob transactions (in gwei)")
 	flags.Uint64Var(&s.options.TipFee, "tipfee", 2, "Max tip per gas to use in blob transactions (in gwei)")
 	flags.Uint64Var(&s.options.BlobFee, "blobfee", 20, "Max blob fee to use in blob transactions (in gwei)")
@@ -96,7 +100,7 @@ func (s *Scenario) Run(tester *tester.Tester) error {
 	txCount := uint64(0)
 	startTime := time.Now()
 
-	s.logger.Infof("starting scenario: blob-spam")
+	s.logger.Infof("starting scenario: blob-all")
 
 	for {
 		txIdx := txIdxCounter
@@ -120,20 +124,22 @@ func (s *Scenario) Run(tester *tester.Tester) error {
 			}()
 
 			logger := s.logger
-			tx, client, err := s.sendBlobTx(txIdx)
+			tx, client, err := s.sendBlobTx(txIdx, 0, 0)
 			if client != nil {
 				logger = logger.WithField("rpc", client.GetName())
 			}
 			if err != nil {
-				logger.Warnf("could not send blob transaction: %v", err)
-				<-s.pendingChan
+				logger.Warnf("blob tx %6d.0 failed: %v", txIdx+1, err)
+				if s.pendingChan != nil {
+					<-s.pendingChan
+				}
 				return
 			}
 
 			counterMutex.Lock()
 			txCount++
 			counterMutex.Unlock()
-			logger.Infof("sent blob tx #%6d: %v (%v sidecars)", txIdx+1, tx.Hash().String(), len(tx.BlobTxSidecar().Blobs))
+			logger.Infof("blob tx %6d.0 sent:  %v (%v sidecars)", txIdx+1, tx.Hash().String(), len(tx.BlobTxSidecar().Blobs))
 		}(txIdx)
 
 		count := txCount + pendingCount
@@ -150,30 +156,37 @@ func (s *Scenario) Run(tester *tester.Tester) error {
 
 	s.logger.Infof("finished sending transactions, awaiting block inclusion...")
 	s.pendingWGroup.Wait()
-	s.logger.Infof("finished sending transactions, awaiting block inclusion...")
+	s.logger.Infof("all transactions included!")
 
 	return nil
 }
 
-func (s *Scenario) sendBlobTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, error) {
+func (s *Scenario) sendBlobTx(txIdx uint64, replacementIdx uint64, txNonce uint64) (*types.Transaction, *txbuilder.Client, error) {
 	client := s.tester.GetClient(tester.SelectByIndex, int(txIdx))
 	wallet := s.tester.GetWallet(tester.SelectByIndex, int(txIdx))
+
+	if rand.Intn(100) < 20 {
+		// 20% chance to send transaction via another client
+		// will cause some replacement txs being sent via different clients than the original tx
+		client = s.tester.GetClient(tester.SelectRandom, 0)
+	}
 
 	var feeCap *big.Int
 	var tipCap *big.Int
 	var blobFee *big.Int
 
 	if s.options.BaseFee > 0 {
-		feeCap = new(big.Int).Mul(big.NewInt(int64(s.options.BaseFee)), big.NewInt(1000000))
+		feeCap = new(big.Int).Mul(big.NewInt(int64(s.options.BaseFee)), big.NewInt(1000000000))
 	}
 	if s.options.TipFee > 0 {
-		tipCap = new(big.Int).Mul(big.NewInt(int64(s.options.TipFee)), big.NewInt(1000000))
+		tipCap = new(big.Int).Mul(big.NewInt(int64(s.options.TipFee)), big.NewInt(1000000000))
 	}
 	if s.options.BlobFee > 0 {
-		blobFee = new(big.Int).Mul(big.NewInt(int64(s.options.BlobFee)), big.NewInt(1000000))
+		blobFee = new(big.Int).Mul(big.NewInt(int64(s.options.BlobFee)), big.NewInt(1000000000))
 	}
 
 	if feeCap == nil || tipCap == nil {
+		// get suggested fee from client
 		var err error
 		feeCap, tipCap, err = client.GetSuggestedFee()
 		if err != nil {
@@ -181,20 +194,27 @@ func (s *Scenario) sendBlobTx(txIdx uint64) (*types.Transaction, *txbuilder.Clie
 		}
 	}
 
-	if feeCap.Cmp(big.NewInt(1000000)) < 0 {
-		feeCap = big.NewInt(1000000)
+	if feeCap.Cmp(big.NewInt(1000000000)) < 0 {
+		feeCap = big.NewInt(1000000000)
 	}
-	if tipCap.Cmp(big.NewInt(1000000)) < 0 {
-		tipCap = big.NewInt(1000000)
+	if tipCap.Cmp(big.NewInt(1000000000)) < 0 {
+		tipCap = big.NewInt(1000000000)
 	}
 	if blobFee == nil {
-		blobFee = big.NewInt(1000000)
+		blobFee = big.NewInt(1000000000)
+	}
+
+	for i := 0; i < int(replacementIdx); i++ {
+		// x3 fee for each replacement tx
+		feeCap = feeCap.Mul(feeCap, big.NewInt(3))
+		tipCap = tipCap.Mul(tipCap, big.NewInt(3))
+		blobFee = blobFee.Mul(blobFee, big.NewInt(3))
 	}
 
 	blobCount := uint64(rand.Int63n(int64(s.options.Sidecars)) + 1)
 	blobRefs := make([][]string, blobCount)
 	for i := 0; i < int(blobCount); i++ {
-		blobLabel := fmt.Sprintf("0x1611AA0000%08dFF%02dFF%04dFEED", txIdx, i, 0)
+		blobLabel := fmt.Sprintf("0x1611AA0000%08dFF%02dFF%04dFEED", txIdx, i, replacementIdx)
 
 		specialBlob := rand.Intn(50)
 		switch specialBlob {
@@ -224,12 +244,17 @@ func (s *Scenario) sendBlobTx(txIdx uint64) (*types.Transaction, *txbuilder.Clie
 		Value:      uint256.NewInt(0),
 	}, blobRefs)
 	if err != nil {
-		return nil, nil, err
+		return nil, client, err
 	}
 
-	tx, err := wallet.BuildBlobTx(blobTx)
+	var tx *types.Transaction
+	if replacementIdx == 0 {
+		tx, err = wallet.BuildBlobTx(blobTx)
+	} else {
+		tx, err = wallet.ReplaceBlobTx(blobTx, txNonce)
+	}
 	if err != nil {
-		return nil, nil, err
+		return nil, client, err
 	}
 
 	err = client.SendTransaction(tx)
@@ -238,27 +263,34 @@ func (s *Scenario) sendBlobTx(txIdx uint64) (*types.Transaction, *txbuilder.Clie
 	}
 
 	s.pendingWGroup.Add(1)
-	go s.awaitTx(txIdx, tx, client, wallet)
+	go s.awaitTx(txIdx, tx, client, wallet, replacementIdx)
 
 	return tx, client, nil
 }
 
-func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilder.Client, wallet *txbuilder.Wallet) {
+func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilder.Client, wallet *txbuilder.Wallet, replacementIdx uint64) {
 	var awaitConfirmation bool = true
 	defer func() {
 		awaitConfirmation = false
-		if s.pendingChan != nil {
-			<-s.pendingChan
+		if replacementIdx == 0 {
+			if s.pendingChan != nil {
+				<-s.pendingChan
+			}
 		}
 		s.pendingWGroup.Done()
 	}()
-	if s.options.Rebroadcast > 0 {
-		go s.delayedResend(txIdx, tx, &awaitConfirmation)
+	if s.options.Replace > 0 && replacementIdx < s.options.MaxReplacements && rand.Intn(100) < 70 {
+		go s.delayedReplace(txIdx, tx, &awaitConfirmation, replacementIdx)
+	} else if s.options.Rebroadcast > 0 {
+		go s.delayedResend(txIdx, tx, &awaitConfirmation, replacementIdx)
 	}
 
 	receipt, blockNum, err := client.AwaitTransaction(tx)
 	if err != nil {
-		s.logger.WithField("client", client.GetName()).Warnf("error while awaiting tx receipt: %v", err)
+		s.logger.WithField("client", client.GetName()).Warnf("blob tx %6d.%v: await receipt failed: %v", txIdx+1, replacementIdx, err)
+		return
+	}
+	if receipt == nil {
 		return
 	}
 
@@ -274,14 +306,14 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 	totalAmount := new(big.Int).Add(tx.Value(), feeAmount)
 	wallet.SubBalance(totalAmount)
 
-	gweiTotalFee := new(big.Int).Div(totalAmount, big.NewInt(1000000))
-	gweiBaseFee := new(big.Int).Div(effectiveGasPrice, big.NewInt(1000000))
-	gweiBlobFee := new(big.Int).Div(blobGasPrice, big.NewInt(1000000))
+	gweiTotalFee := new(big.Int).Div(totalAmount, big.NewInt(1000000000))
+	gweiBaseFee := new(big.Int).Div(effectiveGasPrice, big.NewInt(1000000000))
+	gweiBlobFee := new(big.Int).Div(blobGasPrice, big.NewInt(1000000000))
 
-	s.logger.WithField("client", client.GetName()).Infof(" transaction %d confirmed in block #%v. total fee: %v gwei (base: %v, blob: %v)", txIdx+1, blockNum, gweiTotalFee, gweiBaseFee, gweiBlobFee)
+	s.logger.WithField("client", client.GetName()).Infof("blob tx %6d.%v confirmed in block #%v!  total fee: %v gwei (base: %v, blob: %v)", txIdx+1, replacementIdx, blockNum, gweiTotalFee, gweiBaseFee, gweiBlobFee)
 }
 
-func (s *Scenario) delayedResend(txIdx uint64, tx *types.Transaction, awaitConfirmation *bool) {
+func (s *Scenario) delayedResend(txIdx uint64, tx *types.Transaction, awaitConfirmation *bool, replacementIdx uint64) {
 	for {
 		time.Sleep(time.Duration(s.options.Rebroadcast) * time.Second)
 
@@ -291,6 +323,22 @@ func (s *Scenario) delayedResend(txIdx uint64, tx *types.Transaction, awaitConfi
 
 		client := s.tester.GetClient(tester.SelectRandom, 0)
 		client.SendTransaction(tx)
-		s.logger.WithField("client", client.GetName()).Infof(" transaction %d re-broadcasted.", txIdx+1)
+		s.logger.WithField("client", client.GetName()).Debugf("blob tx %6d.%v re-broadcasted.", txIdx+1, replacementIdx)
 	}
+}
+
+func (s *Scenario) delayedReplace(txIdx uint64, tx *types.Transaction, awaitConfirmation *bool, replacementIdx uint64) {
+	time.Sleep(time.Duration(rand.Intn(int(s.options.Replace))+2) * time.Second)
+
+	if !*awaitConfirmation {
+		return
+	}
+
+	replaceTx, client, err := s.sendBlobTx(txIdx, replacementIdx+1, tx.Nonce())
+	if err != nil {
+		s.logger.WithField("client", client.GetName()).Warnf("blob tx %6d.%v replacement failed: %v", txIdx+1, replacementIdx+1, err)
+		s.delayedResend(txIdx, tx, awaitConfirmation, replacementIdx)
+		return
+	}
+	s.logger.WithField("client", client.GetName()).Infof("blob tx %6d.%v sent:  %v (%v sidecars)", txIdx+1, replacementIdx+1, replaceTx.Hash().String(), len(tx.BlobTxSidecar().Blobs))
 }
