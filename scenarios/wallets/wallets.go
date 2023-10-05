@@ -5,9 +5,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/pk910/blob-spammer/scenariotypes"
-	"github.com/pk910/blob-spammer/tester"
-	"github.com/pk910/blob-spammer/utils"
+	"github.com/ethpandaops/blob-spammer/scenariotypes"
+	"github.com/ethpandaops/blob-spammer/tester"
+	"github.com/ethpandaops/blob-spammer/utils"
 )
 
 type ScenarioOptions struct {

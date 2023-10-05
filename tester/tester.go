@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/ethpandaops/blob-spammer/txbuilder"
+	"github.com/ethpandaops/blob-spammer/utils"
 	"github.com/holiman/uint256"
-	"github.com/pk910/blob-spammer/txbuilder"
-	"github.com/pk910/blob-spammer/utils"
 	"github.com/sirupsen/logrus"
 )
 

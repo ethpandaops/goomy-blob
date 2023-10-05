@@ -10,7 +10,7 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/pk910/blob-spammer/txbuilder"
+	"github.com/ethpandaops/blob-spammer/txbuilder"
 )
 
 type CliArgs struct {

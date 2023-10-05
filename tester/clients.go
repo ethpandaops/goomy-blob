@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pk910/blob-spammer/txbuilder"
+	"github.com/ethpandaops/blob-spammer/txbuilder"
 )
 
 func (tester *Tester) PrepareClients() error {

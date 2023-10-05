@@ -11,9 +11,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethpandaops/blob-spammer/txbuilder"
+	"github.com/ethpandaops/blob-spammer/utils"
 	"github.com/holiman/uint256"
-	"github.com/pk910/blob-spammer/txbuilder"
-	"github.com/pk910/blob-spammer/utils"
 )
 
 func (tester *Tester) PrepareWallets(seed string) error {
