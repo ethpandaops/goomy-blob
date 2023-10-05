@@ -12,7 +12,7 @@ RUN <<EOR
   BUILDTIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
   RELEASE=$release
   CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-sender -ldflags="-s -w -X 'github.com/pk910/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-sender
-  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-tester -ldflags="-s -w -X 'github.com/pk910/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-tester
+  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-tester -ldflags="-s -w -X 'github.com/pk910/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-spammer
 EOR
 
 # final stage
@@ -22,4 +22,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN update-ca-certificates
 ENV PATH="$PATH:/app"
 COPY --from=build-env /app/* /app
-CMD ["./blob-tester"]
+CMD ["./blob-spammer"]
