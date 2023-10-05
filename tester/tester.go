@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/holiman/uint256"
-	"github.com/pk910/blob-sender/txbuilder"
-	"github.com/pk910/blob-sender/utils"
+	"github.com/pk910/blob-spammer/txbuilder"
+	"github.com/pk910/blob-spammer/utils"
 	"github.com/sirupsen/logrus"
 )
 

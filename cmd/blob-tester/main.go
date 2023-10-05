@@ -10,10 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/pk910/blob-sender/scenarios"
-	"github.com/pk910/blob-sender/scenariotypes"
-	"github.com/pk910/blob-sender/tester"
-	"github.com/pk910/blob-sender/utils"
+	"github.com/pk910/blob-spammer/scenarios"
+	"github.com/pk910/blob-spammer/scenariotypes"
+	"github.com/pk910/blob-spammer/tester"
+	"github.com/pk910/blob-spammer/utils"
 )
 
 type CliArgs struct {

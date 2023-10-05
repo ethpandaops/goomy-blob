@@ -1,4 +1,4 @@
-module github.com/pk910/blob-sender
+module github.com/pk910/blob-spammer
 
 go 1.21.1
 

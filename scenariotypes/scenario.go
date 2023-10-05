@@ -1,7 +1,7 @@
 package scenariotypes
 
 import (
-	"github.com/pk910/blob-sender/tester"
+	"github.com/pk910/blob-spammer/tester"
 	"github.com/spf13/pflag"
 )
 

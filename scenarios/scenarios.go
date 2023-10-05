@@ -1,12 +1,12 @@
 package scenarios
 
 import (
-	"github.com/pk910/blob-sender/scenariotypes"
+	"github.com/pk910/blob-spammer/scenariotypes"
 
-	bloball "github.com/pk910/blob-sender/scenarios/blob-all"
-	blobreplace "github.com/pk910/blob-sender/scenarios/blob-replace"
-	blobspam "github.com/pk910/blob-sender/scenarios/blob-spam"
-	"github.com/pk910/blob-sender/scenarios/wallets"
+	bloball "github.com/pk910/blob-spammer/scenarios/blob-all"
+	blobreplace "github.com/pk910/blob-spammer/scenarios/blob-replace"
+	blobspam "github.com/pk910/blob-spammer/scenarios/blob-spam"
+	"github.com/pk910/blob-spammer/scenarios/wallets"
 )
 
 var Scenarios map[string]func() scenariotypes.Scenario = map[string]func() scenariotypes.Scenario{

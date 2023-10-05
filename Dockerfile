@@ -11,8 +11,8 @@ RUN <<EOR
   VERSION=$(git rev-parse --short HEAD)
   BUILDTIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
   RELEASE=$release
-  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-sender -ldflags="-s -w -X 'github.com/pk910/blob-sender/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-sender/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-sender/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-sender
-  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-tester -ldflags="-s -w -X 'github.com/pk910/blob-sender/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-sender/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-sender/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-tester
+  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-sender -ldflags="-s -w -X 'github.com/pk910/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-sender
+  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-tester -ldflags="-s -w -X 'github.com/pk910/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/pk910/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/pk910/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-tester
 EOR
 
 # final stage
