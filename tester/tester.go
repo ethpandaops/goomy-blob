@@ -37,9 +37,8 @@ type TesterConfig struct {
 
 func NewTester(config *TesterConfig) *Tester {
 	return &Tester{
-		config:  config,
-		logger:  logrus.NewEntry(logrus.StandardLogger()),
-		running: true,
+		config: config,
+		logger: logrus.NewEntry(logrus.StandardLogger()),
 	}
 }
 
