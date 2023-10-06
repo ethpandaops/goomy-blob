@@ -1,4 +1,5 @@
-# Goomy the Blob Tool
+<img align="left" src="./.github/resources/goomy.png" width="75">
+<h1>Goomy the Blob Tool</h1>
 
 goomy-blob is a simple tool that can be used to generate random blob transactions for ethereum testnets.
 
