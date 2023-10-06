@@ -52,6 +52,7 @@ func (tester *Tester) Start(seed string) error {
 	if tester.running {
 		return fmt.Errorf("already started")
 	}
+	tester.running = true
 
 	tester.logger.WithFields(logrus.Fields{
 		"version": utils.GetBuildVersion(),

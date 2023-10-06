@@ -184,6 +184,9 @@ func (tester *Tester) resupplyChildWallets() error {
 		}(childIdx)
 	}
 	wg.Wait()
+	if walletErr != nil {
+		return walletErr
+	}
 
 	fundingTxList := []*types.Transaction{}
 	for _, tx := range fundingTxs {
