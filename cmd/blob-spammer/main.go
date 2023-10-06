@@ -18,6 +18,7 @@ import (
 
 type CliArgs struct {
 	verbose      bool
+	trace        bool
 	rpchosts     []string
 	rpchostsFile string
 	privkey      string
@@ -33,6 +34,7 @@ func main() {
 	flags := pflag.NewFlagSet("main", pflag.ContinueOnError)
 
 	flags.BoolVarP(&cliArgs.verbose, "verbose", "v", false, "Run the script with verbose output")
+	flags.BoolVar(&cliArgs.trace, "trace", false, "Run the script with tracing output")
 	flags.StringArrayVarP(&cliArgs.rpchosts, "rpchost", "h", []string{}, "The RPC host to send transactions to.")
 	flags.StringVar(&cliArgs.rpchostsFile, "rpchost-file", "", "File with a list of RPC hosts to send transactions to.")
 	flags.StringVarP(&cliArgs.privkey, "privkey", "p", "", "The private key of the wallet to send funds from.")
@@ -77,7 +79,9 @@ func main() {
 	scenario.Flags(flags)
 	flags.Parse(os.Args)
 
-	if cliArgs.verbose {
+	if cliArgs.trace {
+		logrus.SetLevel(logrus.TraceLevel)
+	} else if cliArgs.verbose {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 

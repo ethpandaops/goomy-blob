@@ -274,7 +274,7 @@ func (client *Client) processWalletNonceAwaiter(wallet common.Address, awaiter *
 	}
 
 	fetchLatestNonce := func(blockHeight uint64) error {
-		client.logger.Tracef("get nonce")
+		client.logger.Tracef("get nonce for %v at %v", wallet.String(), blockHeight)
 		currentNonce, err := client.client.NonceAt(client.getContext(), wallet, big.NewInt(int64(blockHeight)))
 		if err != nil {
 			return err
@@ -309,6 +309,9 @@ func (client *Client) processWalletNonceAwaiter(wallet common.Address, awaiter *
 		if awaitNonceCount == 0 {
 			awaiter.running = false
 			awaiter.mutex.Unlock()
+			client.awaitNonceMutex.Lock()
+			delete(client.awaitNonceWalletMap, wallet)
+			client.awaitNonceMutex.Unlock()
 			return nil
 		}
 		awaiter.mutex.Unlock()
