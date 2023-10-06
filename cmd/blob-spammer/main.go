@@ -106,10 +106,11 @@ func main() {
 		panic(err)
 	}
 	tester := tester.NewTester(testerConfig)
-	err = tester.PrepareTester(cliArgs.seed)
+	err = tester.Start(cliArgs.seed)
 	if err != nil {
 		panic(err)
 	}
+	defer tester.Stop()
 
 	err = scenario.Run(tester)
 	if err != nil {

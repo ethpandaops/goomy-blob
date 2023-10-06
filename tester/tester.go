@@ -1,9 +1,11 @@
 package tester
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/ethpandaops/blob-spammer/txbuilder"
 	"github.com/ethpandaops/blob-spammer/utils"
@@ -14,6 +16,7 @@ import (
 type Tester struct {
 	config         *TesterConfig
 	logger         *logrus.Entry
+	running        bool
 	scenario       string
 	chainId        *big.Int
 	selectionMutex sync.Mutex
@@ -34,8 +37,9 @@ type TesterConfig struct {
 
 func NewTester(config *TesterConfig) *Tester {
 	return &Tester{
-		config: config,
-		logger: logrus.NewEntry(logrus.StandardLogger()),
+		config:  config,
+		logger:  logrus.NewEntry(logrus.StandardLogger()),
+		running: true,
 	}
 }
 
@@ -44,26 +48,53 @@ func (tester *Tester) SetScenario(name string) {
 	tester.logger = logrus.WithField("tester", name)
 }
 
-func (tester *Tester) PrepareTester(seed string) error {
+func (tester *Tester) Start(seed string) error {
 	var err error
+	if tester.running {
+		return fmt.Errorf("already started")
+	}
 
 	tester.logger.WithFields(logrus.Fields{
 		"version": utils.GetBuildVersion(),
-	}).Infof("initialize blob testing tool")
+	}).Infof("starting blob testing tool")
 
-	// initialize clients
+	// prepare clients
 	err = tester.PrepareClients()
 	if err != nil {
 		return err
 	}
 
-	// initialize wallets
+	// prepare wallets
 	err = tester.PrepareWallets(seed)
 	if err != nil {
 		return err
 	}
 
+	// watch wallet balances
+	go tester.watchWalletBalancesLoop()
+
 	return nil
+}
+
+func (tester *Tester) Stop() {
+	if tester.running {
+		tester.running = false
+	}
+}
+
+func (tester *Tester) watchWalletBalancesLoop() {
+	sleepTime := 10 * time.Minute
+	for {
+		time.Sleep(sleepTime)
+
+		err := tester.resupplyChildWallets()
+		if err != nil {
+			tester.logger.Warnf("could not check & resupply chile wallets: %v", err)
+			sleepTime = 1 * time.Minute
+		} else {
+			sleepTime = 10 * time.Minute
+		}
+	}
 }
 
 type SelectionMode uint8

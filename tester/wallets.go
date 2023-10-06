@@ -141,6 +141,82 @@ func (tester *Tester) prepareChildWallet(childIdx uint64, client *txbuilder.Clie
 	return childWallet, tx, nil
 }
 
+func (tester *Tester) resupplyChildWallets() error {
+	client := tester.GetClient(SelectRandom, 0)
+
+	err := client.UpdateWallet(tester.rootWallet)
+	if err != nil {
+		return err
+	}
+
+	var walletErr error
+	wg := &sync.WaitGroup{}
+	wl := make(chan bool, 50)
+	fundingTxs := make([]*types.Transaction, tester.config.WalletCount)
+	for childIdx := uint64(0); childIdx < tester.config.WalletCount; childIdx++ {
+		wg.Add(1)
+		wl <- true
+		go func(childIdx uint64) {
+			defer func() {
+				<-wl
+				wg.Done()
+			}()
+			if walletErr != nil {
+				return
+			}
+
+			childWallet := tester.childWallets[childIdx]
+			err := client.UpdateWallet(childWallet)
+			if err != nil {
+				walletErr = err
+				return
+			}
+			tx, err := tester.buildWalletFundingTx(childWallet, client)
+			if err != nil {
+				walletErr = err
+				return
+			}
+			if tx != nil {
+				childWallet.AddBalance(tx.Value())
+			}
+
+			fundingTxs[childIdx] = tx
+		}(childIdx)
+	}
+	wg.Wait()
+
+	fundingTxList := []*types.Transaction{}
+	for _, tx := range fundingTxs {
+		if tx != nil {
+			fundingTxList = append(fundingTxList, tx)
+		}
+	}
+
+	if len(fundingTxList) > 0 {
+		sort.Slice(fundingTxList, func(a int, b int) bool {
+			return fundingTxList[a].Nonce() < fundingTxList[b].Nonce()
+		})
+
+		tester.logger.Infof("funding child wallets... (0/%v)", len(fundingTxList))
+		for txIdx := 0; txIdx < len(fundingTxList); txIdx += 200 {
+			endIdx := txIdx + 200
+			if txIdx > 0 {
+				tester.logger.Infof("funding child wallets... (%v/%v)", txIdx, len(fundingTxList))
+			}
+			if endIdx > len(fundingTxList) {
+				endIdx = len(fundingTxList)
+			}
+			err := tester.sendTxRange(fundingTxList[txIdx:endIdx], client)
+			if err != nil {
+				return err
+			}
+		}
+		tester.logger.Infof("funded child wallets... (%v/%v)", len(fundingTxList), len(fundingTxList))
+	}
+
+	return nil
+}
+
 func (tester *Tester) CheckChildWalletBalance(childWallet *txbuilder.Wallet) (*types.Transaction, error) {
 	client := tester.GetClient(SelectRandom, 0)
 	balance, err := client.GetBalanceAt(childWallet.GetAddress())
