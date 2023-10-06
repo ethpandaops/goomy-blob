@@ -212,6 +212,8 @@ func (tester *Tester) resupplyChildWallets() error {
 			}
 		}
 		tester.logger.Infof("funded child wallets... (%v/%v)", len(fundingTxList), len(fundingTxList))
+	} else {
+		tester.logger.Infof("checked child wallets (no funding needed)")
 	}
 
 	return nil

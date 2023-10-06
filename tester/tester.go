@@ -83,7 +83,7 @@ func (tester *Tester) Stop() {
 
 func (tester *Tester) watchWalletBalancesLoop() {
 	sleepTime := 10 * time.Minute
-	for {
+	for tester.running {
 		time.Sleep(sleepTime)
 
 		err := tester.resupplyChildWallets()

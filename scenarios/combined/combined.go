@@ -100,7 +100,7 @@ func (s *Scenario) Run(tester *tester.Tester) error {
 	txCount := uint64(0)
 	startTime := time.Now()
 
-	s.logger.Infof("starting scenario: blob-all")
+	s.logger.Infof("starting scenario: combined")
 
 	for {
 		txIdx := txIdxCounter
