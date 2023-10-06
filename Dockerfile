@@ -12,7 +12,7 @@ RUN <<EOR
   BUILDTIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
   RELEASE=$release
   CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-sender -ldflags="-s -w -X 'github.com/ethpandaops/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/ethpandaops/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/ethpandaops/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-sender
-  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-tester -ldflags="-s -w -X 'github.com/ethpandaops/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/ethpandaops/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/ethpandaops/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-spammer
+  CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app/blob-spammer -ldflags="-s -w -X 'github.com/ethpandaops/blob-spammer/utils.BuildVersion=${VERSION}' -X 'github.com/ethpandaops/blob-spammer/utils.BuildRelease=${RELEASE}' -X 'github.com/ethpandaops/blob-spammer/utils.Buildtime=${BUILDTIME}'" ./cmd/blob-spammer
 EOR
 
 # final stage
