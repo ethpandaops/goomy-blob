@@ -85,7 +85,13 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	rpcHosts := cliArgs.rpchosts
+	rpcHosts := []string{}
+	for _, rpcHost := range strings.Split(strings.Join(cliArgs.rpchosts, ","), ",") {
+		if rpcHost != "" {
+			rpcHosts = append(rpcHosts, rpcHost)
+		}
+	}
+
 	if cliArgs.rpchostsFile != "" {
 		fileLines, err := utils.ReadFileLinesTrimmed(cliArgs.rpchostsFile)
 		if err != nil {
