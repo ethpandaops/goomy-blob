@@ -42,6 +42,7 @@ type clientNonceAwait struct {
 	running      bool
 	awaitNonces  map[uint64]*sync.RWMutex
 	blockHeight  uint64
+	errorResult  error
 	currentNonce uint64
 }
 
@@ -246,13 +247,25 @@ func (client *Client) AwaitWalletNonce(wallet common.Address, nonce uint64, bloc
 	if !walletNonceAwaiter.running {
 		walletNonceAwaiter.running = true
 		go func() {
+			var err error
+			retryCount := 0
 			for {
-				err := client.processWalletNonceAwaiter(wallet, walletNonceAwaiter)
+				err = client.processWalletNonceAwaiter(wallet, walletNonceAwaiter)
 				if err == nil {
 					break
 				}
 				client.logger.Warnf("error while awaiting nonce inclusion: %v", err)
-				time.Sleep(1 * time.Second)
+				retryCount++
+				if retryCount > 10 {
+					break
+				}
+				time.Sleep(2 * time.Second)
+			}
+			if err != nil {
+				// can't check nonce - client is probably dead or unsynced
+				// cancel nonceAwaiter, bubble up error
+				walletNonceAwaiter.errorResult = err
+				client.disposeWalletNonceAwaiter(wallet, walletNonceAwaiter, true)
 			}
 		}()
 	}
@@ -260,7 +273,7 @@ func (client *Client) AwaitWalletNonce(wallet common.Address, nonce uint64, bloc
 
 	awaitMutex.RLock()
 	defer awaitMutex.RUnlock()
-	return walletNonceAwaiter.blockHeight, nil
+	return walletNonceAwaiter.blockHeight, walletNonceAwaiter.errorResult
 }
 
 func (client *Client) processWalletNonceAwaiter(wallet common.Address, awaiter *clientNonceAwait) error {
@@ -307,11 +320,7 @@ func (client *Client) processWalletNonceAwaiter(wallet common.Address, awaiter *
 		awaiter.mutex.Lock()
 		awaitNonceCount := len(awaiter.awaitNonces)
 		if awaitNonceCount == 0 {
-			awaiter.running = false
-			awaiter.mutex.Unlock()
-			client.awaitNonceMutex.Lock()
-			delete(client.awaitNonceWalletMap, wallet)
-			client.awaitNonceMutex.Unlock()
+			client.disposeWalletNonceAwaiter(wallet, awaiter, false)
 			return nil
 		}
 		awaiter.mutex.Unlock()
@@ -322,6 +331,17 @@ func (client *Client) processWalletNonceAwaiter(wallet common.Address, awaiter *
 			return err
 		}
 	}
+}
+
+func (client *Client) disposeWalletNonceAwaiter(wallet common.Address, awaiter *clientNonceAwait, lock bool) {
+	if lock {
+		awaiter.mutex.Lock()
+	}
+	awaiter.running = false
+	awaiter.mutex.Unlock()
+	client.awaitNonceMutex.Lock()
+	delete(client.awaitNonceWalletMap, wallet)
+	client.awaitNonceMutex.Unlock()
 }
 
 func (client *Client) AwaitNextBlock(lastBlockHeight uint64) (uint64, error) {
