@@ -20,7 +20,8 @@ type Tester struct {
 	scenario       string
 	chainId        *big.Int
 	selectionMutex sync.Mutex
-	clients        []*txbuilder.Client
+	allClients     []*txbuilder.Client
+	goodClients    []*txbuilder.Client
 	rrClientIdx    int
 	rootWallet     *txbuilder.Wallet
 	childWallets   []*txbuilder.Wallet
@@ -63,6 +64,12 @@ func (tester *Tester) Start(seed string) error {
 	if err != nil {
 		return err
 	}
+	err = tester.watchClientStatus()
+	if err != nil {
+		return err
+	}
+	// watch client status
+	go tester.watchClientStatusLoop()
 
 	// prepare wallets
 	err = tester.PrepareWallets(seed)
@@ -79,6 +86,21 @@ func (tester *Tester) Start(seed string) error {
 func (tester *Tester) Stop() {
 	if tester.running {
 		tester.running = false
+	}
+}
+
+func (tester *Tester) watchClientStatusLoop() {
+	sleepTime := 2 * time.Minute
+	for tester.running {
+		time.Sleep(sleepTime)
+
+		err := tester.watchClientStatus()
+		if err != nil {
+			tester.logger.Warnf("could not check client status: %v", err)
+			sleepTime = 10 * time.Second
+		} else {
+			sleepTime = 2 * time.Minute
+		}
 	}
 }
 
@@ -110,17 +132,17 @@ func (tester *Tester) GetClient(mode SelectionMode, input int) *txbuilder.Client
 	defer tester.selectionMutex.Unlock()
 	switch mode {
 	case SelectByIndex:
-		input = input % len(tester.clients)
+		input = input % len(tester.goodClients)
 	case SelectRandom:
-		input = rand.Intn(len(tester.clients))
+		input = rand.Intn(len(tester.goodClients))
 	case SelectRoundRobin:
 		input = tester.rrClientIdx
 		tester.rrClientIdx++
-		if tester.rrClientIdx >= len(tester.clients) {
+		if tester.rrClientIdx >= len(tester.goodClients) {
 			tester.rrClientIdx = 0
 		}
 	}
-	return tester.clients[input]
+	return tester.goodClients[input]
 }
 
 func (tester *Tester) GetWallet(mode SelectionMode, input int) *txbuilder.Wallet {
