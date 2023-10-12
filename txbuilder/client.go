@@ -266,6 +266,10 @@ func (client *Client) AwaitWalletNonce(wallet common.Address, nonce uint64, bloc
 				// cancel nonceAwaiter, bubble up error
 				walletNonceAwaiter.errorResult = err
 				client.disposeWalletNonceAwaiter(wallet, walletNonceAwaiter, true)
+				for nonce, mtx := range walletNonceAwaiter.awaitNonces {
+					mtx.Unlock()
+					delete(walletNonceAwaiter.awaitNonces, nonce)
+				}
 			}
 		}()
 	}
