@@ -49,7 +49,7 @@ func NewScenario() scenariotypes.Scenario {
 func (s *Scenario) Flags(flags *pflag.FlagSet) error {
 	flags.Uint64VarP(&s.options.TotalCount, "count", "c", 0, "Total number of blob transactions to send")
 	flags.Uint64VarP(&s.options.Throughput, "throughput", "t", 0, "Number of blob transactions to send per slot")
-	flags.Uint64VarP(&s.options.Sidecars, "sidecars", "b", 0, "Number of blob sidecars per blob transactions (0 = random)")
+	flags.Uint64VarP(&s.options.Sidecars, "sidecars", "b", 1, "Number of blob sidecars per blob transactions")
 	flags.Uint64Var(&s.options.MaxPending, "max-pending", 0, "Maximum number of pending transactions")
 	flags.Uint64Var(&s.options.MaxWallets, "max-wallets", 0, "Maximum number of child wallets to use")
 	flags.Uint64Var(&s.options.Rebroadcast, "rebroadcast", 120, "Number of seconds to wait before re-broadcasting a transaction")
