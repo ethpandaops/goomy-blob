@@ -193,10 +193,10 @@ func (s *Scenario) sendTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, 
 	var tipCap *big.Int
 
 	if s.options.BaseFee > 0 {
-		feeCap = new(big.Int).Mul(big.NewInt(int64(s.options.BaseFee)), big.NewInt(1000000))
+		feeCap = new(big.Int).Mul(big.NewInt(int64(s.options.BaseFee)), big.NewInt(1000000000))
 	}
 	if s.options.TipFee > 0 {
-		tipCap = new(big.Int).Mul(big.NewInt(int64(s.options.TipFee)), big.NewInt(1000000))
+		tipCap = new(big.Int).Mul(big.NewInt(int64(s.options.TipFee)), big.NewInt(1000000000))
 	}
 
 	if feeCap == nil || tipCap == nil {
@@ -207,11 +207,11 @@ func (s *Scenario) sendTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, 
 		}
 	}
 
-	if feeCap.Cmp(big.NewInt(1000000)) < 0 {
-		feeCap = big.NewInt(1000000)
+	if feeCap.Cmp(big.NewInt(1000000000)) < 0 {
+		feeCap = big.NewInt(1000000000)
 	}
-	if tipCap.Cmp(big.NewInt(1000000)) < 0 {
-		tipCap = big.NewInt(1000000)
+	if tipCap.Cmp(big.NewInt(1000000000)) < 0 {
+		tipCap = big.NewInt(1000000000)
 	}
 
 	deployData := s.bytecodes[int(txIdx)%len(s.bytecodes)]
@@ -274,9 +274,9 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 	totalAmount := new(big.Int).Add(tx.Value(), feeAmount)
 	wallet.SubBalance(totalAmount)
 
-	gweiTotalFee := new(big.Int).Div(totalAmount, big.NewInt(1000000))
-	gweiBaseFee := new(big.Int).Div(effectiveGasPrice, big.NewInt(1000000))
-	gweiBlobFee := new(big.Int).Div(blobGasPrice, big.NewInt(1000000))
+	gweiTotalFee := new(big.Int).Div(totalAmount, big.NewInt(1000000000))
+	gweiBaseFee := new(big.Int).Div(effectiveGasPrice, big.NewInt(1000000000))
+	gweiBlobFee := new(big.Int).Div(blobGasPrice, big.NewInt(1000000000))
 
 	s.logger.WithField("client", client.GetName()).Infof(" transaction %d confirmed in block #%v. total fee: %v gwei (base: %v, blob: %v)", txIdx+1, blockNum, gweiTotalFee, gweiBaseFee, gweiBlobFee)
 }

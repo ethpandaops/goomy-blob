@@ -1,6 +1,7 @@
 package eoatx
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
 	"sync"
@@ -18,14 +19,15 @@ import (
 )
 
 type ScenarioOptions struct {
-	TotalCount  uint64
-	Throughput  uint64
-	MaxPending  uint64
-	MaxWallets  uint64
-	Rebroadcast uint64
-	BaseFee     uint64
-	TipFee      uint64
-	Amount      uint64
+	TotalCount   uint64
+	Throughput   uint64
+	MaxPending   uint64
+	MaxWallets   uint64
+	Rebroadcast  uint64
+	BaseFee      uint64
+	TipFee       uint64
+	Amount       uint64
+	RandomAmount bool
 }
 
 type Scenario struct {
@@ -53,6 +55,7 @@ func (s *Scenario) Flags(flags *pflag.FlagSet) error {
 	flags.Uint64Var(&s.options.BaseFee, "basefee", 20, "Max fee per gas to use in transfer transactions (in gwei)")
 	flags.Uint64Var(&s.options.TipFee, "tipfee", 2, "Max tip per gas to use in transfer transactions (in gwei)")
 	flags.Uint64Var(&s.options.Amount, "amount", 20, "Transfer amount per transaction (in gwei)")
+	flags.BoolVar(&s.options.RandomAmount, "random-amount", false, "use random amounts for transactions (with --amount as limit)")
 	return nil
 }
 
@@ -160,10 +163,10 @@ func (s *Scenario) sendTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, 
 	var tipCap *big.Int
 
 	if s.options.BaseFee > 0 {
-		feeCap = new(big.Int).Mul(big.NewInt(int64(s.options.BaseFee)), big.NewInt(1000000))
+		feeCap = new(big.Int).Mul(big.NewInt(int64(s.options.BaseFee)), big.NewInt(1000000000))
 	}
 	if s.options.TipFee > 0 {
-		tipCap = new(big.Int).Mul(big.NewInt(int64(s.options.TipFee)), big.NewInt(1000000))
+		tipCap = new(big.Int).Mul(big.NewInt(int64(s.options.TipFee)), big.NewInt(1000000000))
 	}
 
 	if feeCap == nil || tipCap == nil {
@@ -174,11 +177,20 @@ func (s *Scenario) sendTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, 
 		}
 	}
 
-	if feeCap.Cmp(big.NewInt(1000000)) < 0 {
-		feeCap = big.NewInt(1000000)
+	if feeCap.Cmp(big.NewInt(1000000000)) < 0 {
+		feeCap = big.NewInt(1000000000)
 	}
-	if tipCap.Cmp(big.NewInt(1000000)) < 0 {
-		tipCap = big.NewInt(1000000)
+	if tipCap.Cmp(big.NewInt(1000000000)) < 0 {
+		tipCap = big.NewInt(1000000000)
+	}
+
+	amount := uint256.NewInt(s.options.Amount)
+	amount = amount.Mul(amount, uint256.NewInt(1000000000))
+	if s.options.RandomAmount {
+		n, err := rand.Int(rand.Reader, amount.ToBig())
+		if err == nil {
+			amount = uint256.MustFromBig(n)
+		}
 	}
 
 	toAddr := s.tester.GetWallet(tester.SelectByIndex, int(txIdx)+1).GetAddress()
@@ -187,7 +199,7 @@ func (s *Scenario) sendTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, 
 		GasTipCap: uint256.MustFromBig(tipCap),
 		Gas:       21000,
 		To:        &toAddr,
-		Value:     uint256.NewInt(s.options.Amount),
+		Value:     amount,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -240,9 +252,9 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 	totalAmount := new(big.Int).Add(tx.Value(), feeAmount)
 	wallet.SubBalance(totalAmount)
 
-	gweiTotalFee := new(big.Int).Div(totalAmount, big.NewInt(1000000))
-	gweiBaseFee := new(big.Int).Div(effectiveGasPrice, big.NewInt(1000000))
-	gweiBlobFee := new(big.Int).Div(blobGasPrice, big.NewInt(1000000))
+	gweiTotalFee := new(big.Int).Div(totalAmount, big.NewInt(1000000000))
+	gweiBaseFee := new(big.Int).Div(effectiveGasPrice, big.NewInt(1000000000))
+	gweiBlobFee := new(big.Int).Div(blobGasPrice, big.NewInt(1000000000))
 
 	s.logger.WithField("client", client.GetName()).Infof(" transaction %d confirmed in block #%v. total fee: %v gwei (base: %v, blob: %v)", txIdx+1, blockNum, gweiTotalFee, gweiBaseFee, gweiBlobFee)
 }
