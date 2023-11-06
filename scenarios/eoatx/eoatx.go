@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
 	"github.com/sirupsen/logrus"
@@ -28,6 +29,7 @@ type ScenarioOptions struct {
 	TipFee       uint64
 	Amount       uint64
 	RandomAmount bool
+	RandomTarget bool
 }
 
 type Scenario struct {
@@ -55,7 +57,8 @@ func (s *Scenario) Flags(flags *pflag.FlagSet) error {
 	flags.Uint64Var(&s.options.BaseFee, "basefee", 20, "Max fee per gas to use in transfer transactions (in gwei)")
 	flags.Uint64Var(&s.options.TipFee, "tipfee", 2, "Max tip per gas to use in transfer transactions (in gwei)")
 	flags.Uint64Var(&s.options.Amount, "amount", 20, "Transfer amount per transaction (in gwei)")
-	flags.BoolVar(&s.options.RandomAmount, "random-amount", false, "use random amounts for transactions (with --amount as limit)")
+	flags.BoolVar(&s.options.RandomAmount, "random-amount", false, "Use random amounts for transactions (with --amount as limit)")
+	flags.BoolVar(&s.options.RandomTarget, "random-target", false, "Use random to addresses for transactions")
 	return nil
 }
 
@@ -194,6 +197,12 @@ func (s *Scenario) sendTx(txIdx uint64) (*types.Transaction, *txbuilder.Client, 
 	}
 
 	toAddr := s.tester.GetWallet(tester.SelectByIndex, int(txIdx)+1).GetAddress()
+	if s.options.RandomTarget {
+		addrBytes := make([]byte, 20)
+		rand.Read(addrBytes)
+		toAddr = common.Address(addrBytes)
+	}
+
 	txData, err := txbuilder.DynFeeTx(&txbuilder.TxMetadata{
 		GasFeeCap: uint256.MustFromBig(feeCap),
 		GasTipCap: uint256.MustFromBig(tipCap),
