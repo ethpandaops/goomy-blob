@@ -7,6 +7,7 @@ import (
 	"github.com/ethpandaops/blob-spammer/scenarios/conflicting"
 	"github.com/ethpandaops/blob-spammer/scenarios/deploytx"
 	"github.com/ethpandaops/blob-spammer/scenarios/eoatx"
+	"github.com/ethpandaops/blob-spammer/scenarios/erctx"
 	"github.com/ethpandaops/blob-spammer/scenarios/normal"
 	"github.com/ethpandaops/blob-spammer/scenarios/replacements"
 	"github.com/ethpandaops/blob-spammer/scenarios/wallets"
@@ -19,6 +20,7 @@ var Scenarios map[string]func() scenariotypes.Scenario = map[string]func() scena
 	"replacements": replacements.NewScenario,
 
 	"eoatx":    eoatx.NewScenario,
+	"erctx":    erctx.NewScenario,
 	"deploytx": deploytx.NewScenario,
 
 	"wallets": wallets.NewScenario,
