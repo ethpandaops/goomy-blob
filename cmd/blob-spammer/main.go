@@ -77,6 +77,7 @@ func main() {
 
 	flags.Init(fmt.Sprintf("%v %v", flags.Args()[0], scenarioName), pflag.ExitOnError)
 	scenario.Flags(flags)
+	cliArgs = CliArgs{}
 	flags.Parse(os.Args)
 
 	if cliArgs.trace {
