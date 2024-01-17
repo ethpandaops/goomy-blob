@@ -40,7 +40,7 @@ func main() {
 
 	flag.BoolVarP(&cliArgs.verbose, "verbose", "v", false, "Run the script with verbose output")
 	flag.StringVarP(&cliArgs.rpchost, "rpchost", "r", "http://127.0.0.1:8545", "The RPC host to send transactions to.")
-	flag.StringVarP(&cliArgs.privkey, "privkey", "p", "", "The private key of the wallet to send funds from.\n(Special: \"env\" to read from FUNDINGTOOL_PRIVKEY environment variable)")
+	flag.StringVarP(&cliArgs.privkey, "privkey", "p", "", "The private key of the wallet to send blobs from.\n(Special: \"env\" to read from BLOBSENDER_PRIVKEY environment variable)")
 	flag.BoolVar(&cliArgs.randomPrivKey, "random-privkey", false, "Use random private key if no privkey supplied")
 
 	flag.UintVarP(&cliArgs.txCount, "count", "n", 1, "The number of transactions to send.")

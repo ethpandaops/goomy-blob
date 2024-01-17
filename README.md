@@ -110,8 +110,8 @@ Usage of blob-sender:
       --maxpriofee float32     The maximum priority fee per gas in gwei. (default 1.2)
       --nonce uint             Current nonce of the wallet (For offline mode in combination with --output)
   -o, --output                 Output signed transactions to stdout instead of broadcasting them (offline mode).
-  -p, --privkey string         The private key of the wallet to send funds from.
-                               (Special: "env" to read from FUNDINGTOOL_PRIVKEY environment variable)
+  -p, --privkey string         The private key of the wallet to send blobs from.
+                               (Special: "env" to read from BLOBSENDER_PRIVKEY environment variable)
       --random-privkey         Use random private key if no privkey supplied
   -r, --rpchost string         The RPC host to send transactions to. (default "http://127.0.0.1:8545")
   -t, --to string              The transaction to address.
