@@ -1,4 +1,4 @@
-module github.com/ethpandaops/blob-spammer
+module github.com/ethpandaops/goomy-blob
 
 go 1.21.1
 
