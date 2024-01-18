@@ -1,13 +1,13 @@
 package scenarios
 
 import (
-	"github.com/ethpandaops/blob-spammer/scenariotypes"
+	"github.com/ethpandaops/goomy-blob/scenariotypes"
 
-	"github.com/ethpandaops/blob-spammer/scenarios/combined"
-	"github.com/ethpandaops/blob-spammer/scenarios/conflicting"
-	"github.com/ethpandaops/blob-spammer/scenarios/normal"
-	"github.com/ethpandaops/blob-spammer/scenarios/replacements"
-	"github.com/ethpandaops/blob-spammer/scenarios/wallets"
+	"github.com/ethpandaops/goomy-blob/scenarios/combined"
+	"github.com/ethpandaops/goomy-blob/scenarios/conflicting"
+	"github.com/ethpandaops/goomy-blob/scenarios/normal"
+	"github.com/ethpandaops/goomy-blob/scenarios/replacements"
+	"github.com/ethpandaops/goomy-blob/scenarios/wallets"
 )
 
 var Scenarios map[string]func() scenariotypes.Scenario = map[string]func() scenariotypes.Scenario{
