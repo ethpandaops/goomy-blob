@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethpandaops/blob-spammer/txbuilder"
+	"github.com/ethpandaops/goomy-blob/txbuilder"
 )
 
 func (tester *Tester) PrepareClients() error {
@@ -23,19 +23,19 @@ func (tester *Tester) PrepareClients() error {
 
 			client, err := txbuilder.NewClient(rpcHost)
 			if err != nil {
-				tester.logger.Errorf("failed creating client for '%v': %v", rpcHost, err.Error())
+				tester.logger.Errorf("failed creating client for '%v': %v", client.GetRPCHost(), err.Error())
 				return
 			}
-			client.Timeout = 5 * time.Second
+			client.Timeout = 10 * time.Second
 			cliChainId, err := client.GetChainId()
 			if err != nil {
-				tester.logger.Errorf("failed getting chainid from '%v': %v", rpcHost, err.Error())
+				tester.logger.Errorf("failed getting chainid from '%v': %v", client.GetRPCHost(), err.Error())
 				return
 			}
 			if chainId == nil {
 				chainId = cliChainId
 			} else if cliChainId.Cmp(chainId) != 0 {
-				tester.logger.Errorf("chainid missmatch from %v (chain ids: %v, %v)", rpcHost, cliChainId, chainId)
+				tester.logger.Errorf("chainid missmatch from %v (chain ids: %v, %v)", client.GetRPCHost(), cliChainId, chainId)
 				return
 			}
 			client.Timeout = 30 * time.Second

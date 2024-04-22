@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,12 +48,32 @@ type clientNonceAwait struct {
 }
 
 func NewClient(rpchost string) (*Client, error) {
-	client, err := ethclient.Dial(rpchost)
+	headers := map[string]string{}
+
+	if strings.HasPrefix(rpchost, "headers(") {
+
+		headersEnd := strings.Index(rpchost, ")")
+		headersStr := rpchost[8:headersEnd]
+		rpchost = rpchost[headersEnd+1:]
+
+		for _, headerStr := range strings.Split(headersStr, "|") {
+			headerParts := strings.Split(headerStr, ":")
+			headers[strings.Trim(headerParts[0], " ")] = strings.Trim(headerParts[1], " ")
+		}
+	}
+
+	ctx := context.Background()
+	rpcClient, err := rpc.DialContext(ctx, rpchost)
 	if err != nil {
 		return nil, err
 	}
+
+	for hKey, hVal := range headers {
+		rpcClient.SetHeader(hKey, hVal)
+	}
+
 	return &Client{
-		client:              client,
+		client:              ethclient.NewClient(rpcClient),
 		rpchost:             rpchost,
 		logger:              logrus.WithField("client", rpchost),
 		awaitNonceWalletMap: make(map[common.Address]*clientNonceAwait),
@@ -66,6 +87,10 @@ func (client *Client) GetName() string {
 		name = name[:len(name)-len(".ethpandaops.io")]
 	}
 	return name
+}
+
+func (client *Client) GetRPCHost() string {
+	return client.rpchost
 }
 
 func (client *Client) UpdateWallet(wallet *Wallet) error {

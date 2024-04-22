@@ -10,10 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/ethpandaops/blob-spammer/scenarios"
-	"github.com/ethpandaops/blob-spammer/scenariotypes"
-	"github.com/ethpandaops/blob-spammer/tester"
-	"github.com/ethpandaops/blob-spammer/utils"
+	"github.com/ethpandaops/goomy-blob/scenarios"
+	"github.com/ethpandaops/goomy-blob/scenariotypes"
+	"github.com/ethpandaops/goomy-blob/tester"
+	"github.com/ethpandaops/goomy-blob/utils"
 )
 
 type CliArgs struct {
@@ -105,8 +105,8 @@ func main() {
 		RpcHosts:      rpcHosts,
 		WalletPrivkey: cliArgs.privkey,
 		WalletCount:   100,
-		WalletPrefund: utils.EtherToWei(uint256.NewInt(20)),
-		WalletMinfund: utils.EtherToWei(uint256.NewInt(10)),
+		WalletPrefund: utils.EtherToWei(uint256.NewInt(5)),
+		WalletMinfund: utils.EtherToWei(uint256.NewInt(2)),
 	}
 	err := scenario.Init(testerConfig)
 	if err != nil {
