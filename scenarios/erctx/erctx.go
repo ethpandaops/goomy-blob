@@ -14,10 +14,10 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/ethpandaops/blob-spammer/scenariotypes"
-	"github.com/ethpandaops/blob-spammer/tester"
-	"github.com/ethpandaops/blob-spammer/txbuilder"
-	"github.com/ethpandaops/blob-spammer/utils"
+	"github.com/ethpandaops/goomy-blob/scenariotypes"
+	"github.com/ethpandaops/goomy-blob/tester"
+	"github.com/ethpandaops/goomy-blob/txbuilder"
+	"github.com/ethpandaops/goomy-blob/utils"
 )
 
 type ScenarioOptions struct {
