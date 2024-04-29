@@ -66,6 +66,10 @@ func (wallet *Wallet) GetChainId() *big.Int {
 	return wallet.chainid
 }
 
+func (wallet *Wallet) GetPrivateKey() *ecdsa.PrivateKey {
+	return wallet.privkey
+}
+
 func (wallet *Wallet) GetNonce() uint64 {
 	return wallet.nonce
 }

@@ -1,6 +1,7 @@
 package scenarios
 
 import (
+	"github.com/ethpandaops/blob-spammer/scenarios/largetx"
 	"github.com/ethpandaops/blob-spammer/scenariotypes"
 
 	"github.com/ethpandaops/blob-spammer/scenarios/combined"
@@ -21,6 +22,7 @@ var Scenarios map[string]func() scenariotypes.Scenario = map[string]func() scena
 
 	"eoatx":    eoatx.NewScenario,
 	"erctx":    erctx.NewScenario,
+	"largetx":  largetx.NewScenario,
 	"deploytx": deploytx.NewScenario,
 
 	"wallets": wallets.NewScenario,

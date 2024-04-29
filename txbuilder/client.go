@@ -68,6 +68,10 @@ func (client *Client) GetName() string {
 	return name
 }
 
+func (client *Client) GetEthClient() *ethclient.Client {
+	return client.client
+}
+
 func (client *Client) UpdateWallet(wallet *Wallet) error {
 	if wallet.GetChainId() == nil {
 		chainId, err := client.GetChainId()
