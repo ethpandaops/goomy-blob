@@ -19,6 +19,7 @@ var Scenarios map[string]func() scenariotypes.Scenario = map[string]func() scena
 	"replacements": replacements.NewScenario,
 
 	"eoatx":    eoatx.NewScenario,
+	"erctx":    erctx.NewScenario,
 	"deploytx": deploytx.NewScenario,
 
 	"wallets": wallets.NewScenario,
