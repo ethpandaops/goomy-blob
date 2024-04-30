@@ -1,0 +1,21 @@
+[
+  {
+    "type": "function",
+    "name": "loop_it",
+    "inputs": [
+      {
+        "name": "no_of_times_to_loop",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  }
+]

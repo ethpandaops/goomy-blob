@@ -93,6 +93,10 @@ func (client *Client) GetRPCHost() string {
 	return client.rpchost
 }
 
+func (client *Client) GetEthClient() *ethclient.Client {
+	return client.client
+}
+
 func (client *Client) UpdateWallet(wallet *Wallet) error {
 	if wallet.GetChainId() == nil {
 		chainId, err := client.GetChainId()
