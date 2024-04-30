@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -25,7 +26,7 @@ type ScenarioOptions struct {
 	Throughput   uint64
 	MaxPending   uint64
 	MaxWallets   uint64
-	Rebroadcast  uint64
+	Timeout      uint64
 	BaseFee      uint64
 	TipFee       uint64
 	Amount       uint64
@@ -56,7 +57,7 @@ func (s *Scenario) Flags(flags *pflag.FlagSet) error {
 	flags.Uint64VarP(&s.options.Throughput, "throughput", "t", 0, "Number of transfer transactions to send per slot")
 	flags.Uint64Var(&s.options.MaxPending, "max-pending", 0, "Maximum number of pending transactions")
 	flags.Uint64Var(&s.options.MaxWallets, "max-wallets", 0, "Maximum number of child wallets to use")
-	flags.Uint64Var(&s.options.Rebroadcast, "rebroadcast", 120, "Number of seconds to wait before re-broadcasting a transaction")
+	flags.Uint64Var(&s.options.Timeout, "timeout", 120, "Number of seconds to wait timing out the test")
 	flags.Uint64Var(&s.options.BaseFee, "basefee", 20, "Max fee per gas to use in transfer transactions (in gwei)")
 	flags.Uint64Var(&s.options.TipFee, "tipfee", 2, "Max tip per gas to use in transfer transactions (in gwei)")
 	flags.Uint64Var(&s.options.Amount, "amount", 20, "Transfer amount per transaction (in gwei)")
@@ -319,8 +320,8 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 		}
 		s.pendingWGroup.Done()
 	}()
-	if s.options.Rebroadcast > 0 {
-		go s.delayedResend(txIdx, tx, &awaitConfirmation)
+	if s.options.Timeout > 0 {
+		go s.timeTicker(&awaitConfirmation)
 	}
 
 	receipt, blockNum, err := client.AwaitTransaction(tx)
@@ -348,16 +349,15 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 	s.logger.WithField("client", client.GetName()).Infof(" transaction %d confirmed in block #%v. total fee: %v gwei (base: %v, blob: %v)", txIdx+1, blockNum, gweiTotalFee, gweiBaseFee, gweiBlobFee)
 }
 
-func (s *Scenario) delayedResend(txIdx uint64, tx *types.Transaction, awaitConfirmation *bool) {
+func (s *Scenario) timeTicker(awaitConfirmation *bool) {
 	for {
-		time.Sleep(time.Duration(s.options.Rebroadcast) * time.Second)
+		time.Sleep(time.Duration(s.options.Timeout) * time.Second)
 
 		if !*awaitConfirmation {
 			break
 		}
 
-		client := s.tester.GetClient(tester.SelectRandom, 0)
-		client.SendTransaction(tx)
-		s.logger.WithField("client", client.GetName()).Infof(" transaction %d re-broadcasted.", txIdx+1)
+		// exit the process with an error code
+		os.Exit(1)
 	}
 }

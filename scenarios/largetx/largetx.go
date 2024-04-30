@@ -7,6 +7,7 @@ import (
 	largetx "github.com/ethpandaops/goomy-blob/scenarios/largetx/abis"
 	"github.com/ethpandaops/goomy-blob/utils"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -23,14 +24,14 @@ import (
 var LOOPER_CONTRACT_BYTECODE = "0x608060405234801561001057600080fd5b506101c5806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c80638f491c6514610030575b600080fd5b61004361003e3660046100ee565b610059565b604051610050919061011f565b60405180910390f35b606060008267ffffffffffffffff1667ffffffffffffffff81111561008057610080610163565b6040519080825280602002602001820160405280156100a9578160200160208202803683370190505b50905060005b8367ffffffffffffffff168110156100e757808282815181106100d4576100d4610179565b60209081029190910101526001016100af565b5092915050565b60006020828403121561010057600080fd5b813567ffffffffffffffff8116811461011857600080fd5b9392505050565b6020808252825182820181905260009190848201906040850190845b818110156101575783518352928401929184019160010161013b565b50909695505050505050565b634e487b7160e01b600052604160045260246000fd5b634e487b7160e01b600052603260045260246000fdfea2646970667358221220b226884699e16cc47ae01a4cc201e790347695464df17edde46bbab26872400364736f6c63430008180033"
 
 type ScenarioOptions struct {
-	TotalCount  uint64
-	Throughput  uint64
-	MaxPending  uint64
-	MaxWallets  uint64
-	Rebroadcast uint64
-	BaseFee     uint64
-	TipFee      uint64
-	LoopCount   uint64
+	TotalCount uint64
+	Throughput uint64
+	MaxPending uint64
+	MaxWallets uint64
+	Timeout    uint64
+	BaseFee    uint64
+	TipFee     uint64
+	LoopCount  uint64
 }
 
 type Scenario struct {
@@ -57,7 +58,7 @@ func (s *Scenario) Flags(flags *pflag.FlagSet) error {
 	flags.Uint64VarP(&s.options.Throughput, "throughput", "t", 0, "Number of large transactions to send per slot")
 	flags.Uint64Var(&s.options.MaxPending, "max-pending", 0, "Maximum number of pending transactions")
 	flags.Uint64Var(&s.options.MaxWallets, "max-wallets", 0, "Maximum number of child wallets to use")
-	flags.Uint64Var(&s.options.Rebroadcast, "rebroadcast", 120, "Number of seconds to wait before re-broadcasting a transaction")
+	flags.Uint64Var(&s.options.Timeout, "timeout", 120, "Number of seconds to wait timing out the test")
 	flags.Uint64Var(&s.options.BaseFee, "basefee", 20, "Max fee per gas to use in large transactions (in gwei)")
 	flags.Uint64Var(&s.options.TipFee, "tipfee", 2, "Max tip per gas to use in large transactions (in gwei)")
 	flags.Uint64Var(&s.options.LoopCount, "loop-count", 20000, "The number of loops to perform in the contract. This will increase the gas units")
@@ -317,8 +318,8 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 		}
 		s.pendingWGroup.Done()
 	}()
-	if s.options.Rebroadcast > 0 {
-		go s.delayedResend(txIdx, tx, &awaitConfirmation)
+	if s.options.Timeout > 0 {
+		go s.timeTicker(&awaitConfirmation)
 	}
 
 	receipt, blockNum, err := client.AwaitTransaction(tx)
@@ -346,16 +347,14 @@ func (s *Scenario) awaitTx(txIdx uint64, tx *types.Transaction, client *txbuilde
 	s.logger.WithField("client", client.GetName()).Infof(" transaction %d confirmed in block #%v. total gas units: %d, total fee: %v gwei (base: %v, blob: %v)", txIdx+1, blockNum, receipt.GasUsed, gweiTotalFee, gweiBaseFee, gweiBlobFee)
 }
 
-func (s *Scenario) delayedResend(txIdx uint64, tx *types.Transaction, awaitConfirmation *bool) {
+func (s *Scenario) timeTicker(awaitConfirmation *bool) {
 	for {
-		time.Sleep(time.Duration(s.options.Rebroadcast) * time.Second)
+		time.Sleep(time.Duration(s.options.Timeout) * time.Second)
 
 		if !*awaitConfirmation {
 			break
 		}
 
-		client := s.tester.GetClient(tester.SelectRandom, 0)
-		client.SendTransaction(tx)
-		s.logger.WithField("client", client.GetName()).Infof(" transaction %d re-broadcasted.", txIdx+1)
+		os.Exit(1)
 	}
 }
