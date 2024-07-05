@@ -44,19 +44,19 @@ func EncodeBlob(data []byte) (*BlobCommitment, error) {
 	var err error
 
 	// generate blob commitment
-	blobCommitment.Commitment, err = kzg4844.BlobToCommitment(blobCommitment.Blob)
+	blobCommitment.Commitment, err = kzg4844.BlobToCommitment(&blobCommitment.Blob)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating blob commitment: %w", err)
 	}
 
 	// generate blob proof
-	blobCommitment.Proof, err = kzg4844.ComputeBlobProof(blobCommitment.Blob, blobCommitment.Commitment)
+	blobCommitment.Proof, err = kzg4844.ComputeBlobProof(&blobCommitment.Blob, blobCommitment.Commitment)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating blob proof: %w", err)
 	}
 
 	// build versioned hash
 	blobCommitment.VersionedHash = sha256.Sum256(blobCommitment.Commitment[:])
-	blobCommitment.VersionedHash[0] = params.BlobTxHashVersion
+	blobCommitment.VersionedHash[0] = 0x01
 	return &blobCommitment, nil
 }
