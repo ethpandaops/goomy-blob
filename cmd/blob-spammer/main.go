@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/holiman/uint256"
 	"github.com/sirupsen/logrus"
@@ -112,15 +113,31 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	retry := 0
+	for {
+		err := runScenario(testerConfig, scenario, &cliArgs)
+		if err == nil {
+			break
+		}
+
+		logrus.Errorf("error running scenario: %v", err)
+		retry++
+		if retry > 10 {
+			break
+		}
+
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func runScenario(testerConfig *tester.TesterConfig, scenario scenariotypes.Scenario, cliArgs *CliArgs) error {
 	tester := tester.NewTester(testerConfig)
-	err = tester.Start(cliArgs.seed)
+	err := tester.Start(cliArgs.seed)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer tester.Stop()
 
-	err = scenario.Run(tester)
-	if err != nil {
-		panic(err)
-	}
+	return scenario.Run(tester)
 }
