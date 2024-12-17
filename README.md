@@ -1,5 +1,26 @@
-<img align="left" src="./.github/resources/goomy.png" width="75">
-<h1>Goomy the Blob Tool</h1>
+# ⚠️ Deprecation and Archival Notice ⚠️
+
+**This repository is deprecated and archived.**  
+Goomy the Blob Spammer has been replaced by [Spamoor](https://github.com/ethpandaops/spamoor), which offers **all Goomy's features** and is **much more reliable** for ongoing or high-throughput spamming.
+
+---
+
+## 📌 Why Spamoor?
+- Fully supports all functionalities previously offered by Goomy.
+- Enhanced performance and reliability for high-throughput tasks.
+- Actively maintained with improved features.
+
+---
+
+### 🔗 **Head over to Spamoor now!**
+[https://github.com/ethpandaops/spamoor](https://github.com/ethpandaops/spamoor)
+
+This repository is **archived** and will no longer receive updates. For the best experience, please migrate to Spamoor.  
+
+---
+
+
+## Goomy the Blob Tool
 
 goomy-blob is a simple tool that can be used to generate random blob transactions for ethereum testnets.
 
